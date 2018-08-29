@@ -19,7 +19,7 @@ function mdl = wofe(Cx,Y,varargin)
 %             variables, such that Cx = {GRIDobj1 edges1 GRIDobj2 edges2
 %             ...}. If the GRIDobj contains ordinal or nominal data, supply
 %             the corresponding edges vector as empty vector or string.
-%     B       logical GRIDobj containing the response variable.
+%     Y       logical GRIDobj containing the response variable.
 %
 % Parameter name/value pairs
 %
@@ -28,7 +28,12 @@ function mdl = wofe(Cx,Y,varargin)
 % Output
 %
 %     mdl      structure array with output
-%             .P_D    : prior probability
+%             .P_D    : prior probability. This is an empirical prior and
+%                       is estimated from the group relative frequencies. 
+%             .P_BD   : conditional probability for each variable. For each
+%                       variable, there is a 4xn corresponding to the n 
+%                       classes and the probabilities p(B|D), P(B|~D), 
+%                       P(~B|D), and P(~B|~D).
 %             .Wp     : positive weights
 %             .Wm     : negative weights
 %             .s2Wp   : variance of Wp
@@ -38,7 +43,6 @@ function mdl = wofe(Cx,Y,varargin)
 %             .P_DnB  : posterior probability (D given ~B)
 %
 % See also: wofepredict, wofetabulate
-%
 %
 % Author: Wolfgang Schwanghart (w.schwanghart[at]geo.uni-potsdam.de)
 % Date: 07. May, 2015
@@ -71,7 +75,7 @@ y = Y.Z(:);
 npred = numel(Cx)/2;
 
 % check if input arguments align spatially with each other.
-for r = 1:npred;
+for r = 1:npred
     tf = validatealignment(Y,Cx{r*2-1});
     if ~tf
         error('TopoToolbox:wofe',...
@@ -84,7 +88,7 @@ end
 X = zeros(prod(Cx{1}.size),npred);
 
 % quantize grids if required and write information to mdl
-for r=1:npred;
+for r=1:npred
     
     if ~isempty(Cx{r*2})
         % quantize
@@ -94,13 +98,13 @@ for r=1:npred;
         maxx = max(Cx{r*2-1});
         
         % adjust levels to cover the full range of the data
-        if levels(1)>minx;
+        if levels(1)>minx
             levels(1) = minx;
         end
         
-        if levels(end) < maxx;
+        if levels(end) < maxx
             levels(end+1) = maxx+1;
-        elseif levels(end) == maxx;
+        elseif levels(end) == maxx
             levels(end) = maxx+1;
         end          
         
@@ -129,7 +133,7 @@ end
 
 % Find nans, infs and restrict data to mask if supplied
 I = ~any(isnan(X) | isinf(X),2) | isnan(y) | isinf(y);
-if ~isempty(p.Results.mask);
+if ~isempty(p.Results.mask)
     I = I & p.Results.mask.Z(:);
 end
 
@@ -147,12 +151,12 @@ mdl.P_D = N_D./nrc;
 logitD  = log(mdl.P_D/(1-mdl.P_D));
 
 % Conditional probability
-for r = 1:npred;
+for r = 1:npred
     [~,IX] = histc(X(:,r),double(mdl.pred(r).levels));
     % create dummy binary variables
     x = sparse((1:nrc)',IX,1,nrc,mdl.pred(r).nrlevels);
     
-    for r2 = 1:mdl.pred(r).nrlevels;
+    for r2 = 1:mdl.pred(r).nrlevels
         % Conditional probabilities
         mdl.P_BD(r).P(1,r2) = nnz(x(:,r2) & y)/N_D;    % P(B|D)
         mdl.P_BD(r).P(2,r2) = nnz(x(:,r2) & ~y)/(nrc-N_D);   % P(B|~D)

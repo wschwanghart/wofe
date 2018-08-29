@@ -1,8 +1,34 @@
 function P = wofepredict(mdl,Cx)
 
 % Prediction
+%
+% Syntax
+%
+%     P = wofepredict(mdl,Cx)
+%   
+% Description
+%
+%     wofepredict takes the weights of evidence model mdl and a cell array
+%     of predictor grids Cx. GRIDobjs in Cx must be in the same order as
+%     they have been used to train the model.
+%
+% Input arguments
+%
+%     mdl    weights of evidence model
+%     Cx     cell array of GRIDobjs. All GRIDobjs must be spatially
+%            aligned.
+%
+% Output arguments
+%
+%     P      GRIDobj with posterior probabilities
+%
+%
+% See also: wofe, wofetabulate
+%
+% Author: Wolfgang Schwanghart (w.schwanghart[at]geo.uni-potsdam.de)
+% Date: 07. May, 2015 
 
-if numel(Cx) ~= numel(mdl.pred);
+if numel(Cx) ~= numel(mdl.pred)
     error(['number of predictor variables in the model differs from the\newline' ...
            'number of grids supplied as second argument']);
 end
